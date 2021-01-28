@@ -20,7 +20,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vuedx-typecheck . && vite build",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "prepublishOnly": "yarn build"
   },
   "devDependencies": {
     "@types/node": "^14.14.22",
