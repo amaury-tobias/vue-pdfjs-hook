@@ -27,12 +27,8 @@ type HookProps = {
   onPageRenderFail?: (err: Error) => void
   onPassword?: (callback: (password: string) => void, reason: 'NEED_PASSWORD' | 'INCORRECT_PASSWORD') => void
 
-  cMapUrl?: string
-  cMapPacked?: boolean
   workerSrc?: string
-  withCredentials?: boolean
-  password?: string
-  httpHeaders?: Record<string, unknown>
+  config?: DocumentInitParameters
 }
 
 type SVGGfx = {
@@ -50,11 +46,7 @@ export const usePDF = (options: HookProps) => {
     onPassword,
 
     file,
-    withCredentials,
-    cMapUrl,
-    cMapPacked,
-    password,
-    httpHeaders,
+    config
   } = options
 
   const documentLoadingTask = ref<PDFDocumentLoadingTask>()
@@ -107,15 +99,11 @@ export const usePDF = (options: HookProps) => {
     file,
     (_file, _oldFile, onInvalidate) => {
       if (_oldFile === _file) return
-      const config: DocumentInitParameters = {
+      const _config: DocumentInitParameters = {
         url: _file,
-        withCredentials: withCredentials,
-        cMapUrl,
-        cMapPacked,
-        password,
-        httpHeaders,
       }
-      documentLoadingTask.value = _pdfjs.getDocument(config)
+      Object.assign(_config, config)
+      documentLoadingTask.value = _pdfjs.getDocument(_config)
 
       documentLoadingTask.value.onPassword = (updatePassword: any, reason: number) => {
         switch (reason) {

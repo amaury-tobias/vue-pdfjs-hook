@@ -1,5 +1,6 @@
 import type { ComputedRef, DeepReadonly, Ref } from "vue";
 import type {
+  DocumentInitParameters,
   PDFDocumentProxy,
   PDFPageProxy,
 } from "pdfjs-dist/types/display/api";
@@ -34,12 +35,8 @@ export type PDFHookOptions = {
   onPageRenderFail?: (err: Error) => void;
   onPassword?: (callback: (password: string) => void, reason: 'NEED_PASSWORD' | 'INCORRECT_PASSWORD') => void
 
-  cMapUrl?: string;
-  cMapPacked?: boolean;
   workerSrc?: string;
-  withCredentials?: boolean;
-  password?: string;
-  httpHeaders?: Record<string, unknown>;
+  config?: DocumentInitParameters
 };
 
 export const usePDF: (options: PDFHookOptions) => PDFHookReturn;
