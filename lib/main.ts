@@ -25,6 +25,7 @@ type HookProps = {
   onPageLoadFail?: (err: Error) => void
   onPageRenderSuccess?: (page: PDFPageProxy) => void
   onPageRenderFail?: (err: Error) => void
+  onPassword?: (callback: (password: string) => void, reason: 'NEED_PASSWORD' | 'INCORRECT_PASSWORD') => void
 
   cMapUrl?: string
   cMapPacked?: boolean
@@ -46,6 +47,7 @@ export const usePDF = (options: HookProps) => {
     onPageLoadFail,
     onPageRenderSuccess,
     onPageRenderFail,
+    onPassword,
 
     file,
     withCredentials,
@@ -115,6 +117,17 @@ export const usePDF = (options: HookProps) => {
       }
       documentLoadingTask.value = _pdfjs.getDocument(config)
 
+      documentLoadingTask.value.onPassword = (updatePassword: any, reason: number) => {
+        switch (reason) {
+          case _pdfjs.PasswordResponses.NEED_PASSWORD:
+            if (isFunction(onPassword)) onPassword(updatePassword, 'NEED_PASSWORD')
+            break;
+          case _pdfjs.PasswordResponses.INCORRECT_PASSWORD:
+            if (isFunction(onPassword)) onPassword(updatePassword, 'INCORRECT_PASSWORD')
+            break;
+        }
+      }
+
       documentLoadingTask.value.promise
         .then((loadedPdfDocument) => {
           pdfDocument.value = loadedPdfDocument
@@ -159,8 +172,7 @@ export const usePDF = (options: HookProps) => {
       if (!el || !svg.value) return
       if (el.firstElementChild) el.removeChild(el.firstElementChild)
       if (!el.firstElementChild) el.appendChild(svg.value)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      if (isFunction(onPageRenderSuccess)) onPageRenderSuccess(pdfPage.value!)
+      if (isFunction(onPageRenderSuccess)) onPageRenderSuccess(_PDFPage)
     }
 
     if (!pdfDocument.value) return
@@ -180,7 +192,11 @@ export const usePDF = (options: HookProps) => {
     if (pdfPage.value) drawPdfPage(pdfPage.value)
   })
 
-  watch(pdfDocument, () => (page.value = 1))
+  watch(pdfDocument, () => {
+    page.value = 1
+    svgCache.clear()
+    pdfPageCache.clear()
+  })
 
   const rotateCW = () => {
     rotate.value += 90
@@ -230,7 +246,6 @@ export const usePDF = (options: HookProps) => {
     pdfPage,
     viewport: readonly(defaultViewport),
 
-    // useData: () => ({
     page: readonly(page),
     rotate: readonly(rotate),
     scale: readonly(scale),
@@ -243,8 +258,15 @@ export const usePDF = (options: HookProps) => {
     fitWidth,
     nextPage,
     prevPage,
-    // }),
   }
 }
 
-// export default usePDF
+export default (options: {
+  workerPort: Worker,
+  workerSrc: string
+}) => {
+  if (options.workerPort)
+    _pdfjs.GlobalWorkerOptions.workerPort = options.workerPort
+  else
+    _pdfjs.GlobalWorkerOptions.workerSrc = options.workerSrc
+}

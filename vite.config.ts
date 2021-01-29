@@ -8,13 +8,15 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, "lib/main.ts"),
-      name: "vue-pdfjs",
+      name: "vue-pdfjs-hook",
     },
     rollupOptions: {
       external: ['vue', 'pdfjs-dist'],
       output: {
+        exports: 'named',
         globals: {
-          vue: 'Vue'
+          vue: 'Vue',
+          'pdfjs-dist': 'pdfjsLib'
         }
       }
     },

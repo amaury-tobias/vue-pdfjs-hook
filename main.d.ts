@@ -32,6 +32,7 @@ export type PDFHookOptions = {
   onPageLoadFail?: (err: Error) => void;
   onPageRenderSuccess?: (page: PDFPageProxy) => void;
   onPageRenderFail?: (err: Error) => void;
+  onPassword?: (callback: (password: string) => void, reason: 'NEED_PASSWORD' | 'INCORRECT_PASSWORD') => void
 
   cMapUrl?: string;
   cMapPacked?: boolean;

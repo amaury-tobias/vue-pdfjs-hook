@@ -5,15 +5,20 @@
   "author": "Amaury Tobias <amaury.tobiasqr@gmail.com> (https://amaurytq.dev)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/amaury-tobias/vue-pdfjs.git"
+    "url": "https://github.com/amaury-tobias/vue-pdfjs-hook.git"
   },
   "description": "Vue hook to use easy pdfjs-dist and render a PDF Document in SVG mode",
-  "main": "./dist/vue-pdfjs.umd.js",
-  "module": "./dist/vue-pdfjs.es.js",
+  "keywords": [
+    "vue",
+    "pdfjs",
+    "pdf"
+  ],
+  "main": "./dist/vue-pdfjs-hook.umd.js",
+  "module": "./dist/vue-pdfjs-hook.es.js",
   "exports": {
     ".": {
-      "import": "./dist/vue-pdfjs.es.js",
-      "require": "./dist/vue-pdfjs.umd.js"
+      "import": "./dist/vue-pdfjs-hook.es.js",
+      "require": "./dist/vue-pdfjs-hook.umd.js"
     }
   },
   "types": "./main.d.ts",
@@ -31,7 +36,7 @@
     "@vuedx/typescript-plugin-vue": "^0.6.0",
     "pdfjs-dist": "^2.7.570",
     "typescript": "^4.1.3",
-    "vite": "^2.0.0-beta.51",
+    "vite": "^2.0.0-beta.52",
     "vue": "^3.0.5"
   },
   "peerDependencies": {
