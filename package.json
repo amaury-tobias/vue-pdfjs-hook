@@ -1,6 +1,6 @@
 {
   "name": "vue-pdfjs-hook",
-  "version": "0.0.1-beta.3",
+  "version": "0.0.1-beta.4",
   "license": "MIT",
   "author": "Amaury Tobias <amaury.tobiasqr@gmail.com> (https://amaurytq.dev)",
   "repository": {
@@ -24,7 +24,7 @@
   "types": "./main.d.ts",
   "scripts": {
     "dev": "vite",
-    "build": "vuedx-typecheck . && vite build",
+    "build": "vite build",
     "serve": "vite preview",
     "prepublishOnly": "yarn build"
   },

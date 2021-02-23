@@ -21,6 +21,7 @@ export type PDFHookReturn = {
   fitWidth: () => void;
   nextPage: () => void;
   prevPage: () => void;
+  setPage: (page: number) => void;
 };
 
 export type PDFHookOptions = {

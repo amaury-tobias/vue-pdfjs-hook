@@ -1,6 +1,6 @@
 import * as _pdfjs from 'pdfjs-dist'
 
-import { computed, readonly, Ref, ref, watch } from 'vue'
+import { computed, nextTick, readonly, Ref, ref, watch } from 'vue'
 import {
   PDFDocumentProxy,
   PDFPageProxy,
@@ -89,16 +89,14 @@ export const usePDF = (options: HookProps) => {
     () => pdfPage.value?.getViewport({ scale: 1.0 }) ?? { height: 0, width: 0 },
   )
 
-  const workerSrc = ref(
-    (options.workerSrc ??= `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${_pdfjs.version}/pdf.worker.js`),
-  )
+  const workerSrc = ref(options.workerSrc ?? `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${_pdfjs.version}/pdf.worker.js`)
 
   _pdfjs.GlobalWorkerOptions.workerSrc = workerSrc.value
 
   watch(
     file,
     (_file, _oldFile, onInvalidate) => {
-      if (_oldFile === _file) return
+      if (!_file || _oldFile === _file) return
       const _config: DocumentInitParameters = {
         url: _file,
       }
@@ -139,6 +137,11 @@ export const usePDF = (options: HookProps) => {
   })
 
   watch([page, rotate], async ([_page]) => {
+    if (_page === 0) {
+      const el = element.value
+      if (el && el.firstElementChild) el.removeChild(el.firstElementChild)
+      return
+    }
     const drawPdfPage = async (_PDFPage: PDFPageProxy) => {
       const rotation = _rotate.value === 0 ? _PDFPage.rotate : _PDFPage.rotate + _rotate.value
 
@@ -181,9 +184,10 @@ export const usePDF = (options: HookProps) => {
   })
 
   watch(pdfDocument, () => {
-    page.value = 1
+    page.value = 0
     svgCache.clear()
     pdfPageCache.clear()
+    nextTick(() => page.value = 1)
   })
 
   const rotateCW = () => {
@@ -222,11 +226,16 @@ export const usePDF = (options: HookProps) => {
   }
   const nextPage = () => {
     if (page.value === pdfDocument.value?.numPages) return
-    page.value += 1
+    setPage(page.value + 1)
   }
   const prevPage = () => {
     if (page.value === 1) return
-    page.value -= 1
+    setPage(page.value - 1)
+  }
+  const setPage = (_page: number) => {
+    if (!pdfDocument.value) return
+    if (_page > pdfDocument.value.numPages) return
+    page.value = _page
   }
 
   return {
@@ -246,15 +255,6 @@ export const usePDF = (options: HookProps) => {
     fitWidth,
     nextPage,
     prevPage,
+    setPage,
   }
-}
-
-export default (options: {
-  workerPort: Worker,
-  workerSrc: string
-}) => {
-  if (options.workerPort)
-    _pdfjs.GlobalWorkerOptions.workerPort = options.workerPort
-  else
-    _pdfjs.GlobalWorkerOptions.workerSrc = options.workerSrc
 }
