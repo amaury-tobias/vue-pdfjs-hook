@@ -1,40 +1,24 @@
 import * as _pdfjs from 'pdfjs-dist'
 
-import { computed, nextTick, readonly, Ref, ref, watch } from 'vue'
+import { computed, nextTick, readonly, ref, shallowRef, watch } from 'vue'
 import {
   PDFDocumentProxy,
   PDFPageProxy,
   DocumentInitParameters,
-  PDFDocumentLoadingTask,
   PDFOperatorList,
 } from 'pdfjs-dist/types/display/api'
 import { PageViewport } from 'pdfjs-dist/types/display/display_utils'
+import type { PDFHookOptions } from '../main'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 function isFunction(value: unknown): value is Function {
   return typeof value === 'function'
 }
 
-type HookProps = {
-  element: Ref<HTMLElement | undefined>
-  file: Ref<string>
-
-  onDocumentLoadSuccess?: (document: PDFDocumentProxy) => void
-  onDocumentLoadFail?: (err: Error) => void
-  onPageLoadSuccess?: (page: PDFPageProxy) => void
-  onPageLoadFail?: (err: Error) => void
-  onPageRenderSuccess?: (page: PDFPageProxy) => void
-  onPageRenderFail?: (err: Error) => void
-  onPassword?: (callback: (password: string) => void, reason: 'NEED_PASSWORD' | 'INCORRECT_PASSWORD') => void
-
-  workerSrc?: string
-  config?: DocumentInitParameters
-}
-
 type SVGGfx = {
   getSVG: (operatorList: PDFOperatorList, viewport: PageViewport) => Promise<HTMLElement>
 }
-export const usePDF = (options: HookProps) => {
+export const usePDF = (options: PDFHookOptions) => {
   const {
     element,
     onDocumentLoadSuccess,
@@ -46,17 +30,15 @@ export const usePDF = (options: HookProps) => {
     onPassword,
 
     file,
-    config
+    config,
   } = options
-
-  const documentLoadingTask = ref<PDFDocumentLoadingTask>()
 
   const svgCache = new Map<string, HTMLElement>()
   const pdfPageCache = new Map<number, PDFPageProxy>()
 
-  const pdfDocument = ref<PDFDocumentProxy>()
-  const pdfPage = ref<PDFPageProxy>()
-  const svg = ref<HTMLElement>()
+  const pdfDocument = shallowRef<PDFDocumentProxy>()
+  const pdfPage = shallowRef<PDFPageProxy>()
+  const svg = shallowRef<HTMLElement>()
 
   const page = ref(0)
   const scale = ref(1)
@@ -101,20 +83,20 @@ export const usePDF = (options: HookProps) => {
         url: _file,
       }
       Object.assign(_config, config)
-      documentLoadingTask.value = _pdfjs.getDocument(_config)
+      const documentLoadingTask = _pdfjs.getDocument(_config)
 
-      documentLoadingTask.value.onPassword = (updatePassword: any, reason: number) => {
+      documentLoadingTask.onPassword = (updatePassword: (password: string) => void, reason: number) => {
         switch (reason) {
           case _pdfjs.PasswordResponses.NEED_PASSWORD:
             if (isFunction(onPassword)) onPassword(updatePassword, 'NEED_PASSWORD')
-            break;
+            break
           case _pdfjs.PasswordResponses.INCORRECT_PASSWORD:
             if (isFunction(onPassword)) onPassword(updatePassword, 'INCORRECT_PASSWORD')
-            break;
+            break
         }
       }
 
-      documentLoadingTask.value.promise
+      documentLoadingTask.promise
         .then((loadedPdfDocument) => {
           pdfDocument.value = loadedPdfDocument
 
@@ -123,8 +105,6 @@ export const usePDF = (options: HookProps) => {
         .catch((err) => {
           if (isFunction(onDocumentLoadFail)) onDocumentLoadFail(err)
         })
-
-      onInvalidate(() => documentLoadingTask.value?.destroy())
     },
     { immediate: true },
   )
@@ -205,8 +185,8 @@ export const usePDF = (options: HookProps) => {
   const fitWidth = () => {
     if (!pdfPage.value || !element.value || !element.value.parentElement) return
     const wantedHeight = element.value.parentElement.clientWidth
-    const currentHeight =
-      _rotate.value === 0 || _rotate.value === 180
+    const currentHeight
+      = _rotate.value === 0 || _rotate.value === 180
         ? defaultViewport.value.width
         : defaultViewport.value.height
     const height = wantedHeight / currentHeight
@@ -216,8 +196,8 @@ export const usePDF = (options: HookProps) => {
     if (!pdfPage.value || !element.value || !element.value.parentElement) return
     const wantedHeight = element.value.parentElement.clientHeight
 
-    const currentHeight =
-      _rotate.value === 0 || _rotate.value === 180
+    const currentHeight
+      = _rotate.value === 0 || _rotate.value === 180
         ? defaultViewport.value.height
         : defaultViewport.value.width
 
@@ -239,8 +219,8 @@ export const usePDF = (options: HookProps) => {
   }
 
   return {
-    pdfDocument,
-    pdfPage,
+    pdfDocument: readonly(pdfDocument),
+    pdfPage: readonly(pdfPage),
     viewport: readonly(defaultViewport),
 
     page: readonly(page),

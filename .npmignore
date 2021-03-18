@@ -1,7 +1,10 @@
 .vscode/
 lib/
 node_modules/
+src/
 .gitignore
+.eslintignore
+.eslintrc
 index.html
 tsconfig.json
 vite.config.ts

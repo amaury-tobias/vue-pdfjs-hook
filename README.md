@@ -19,12 +19,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, shallowRef } from 'vue'
 import { usePDF } from 'vue-pdfjs-hook'
 
 export default defineComponent({
   setup() {
-    const element = ref<HTMLElement>()
+    const element = shallowRef<HTMLElement>()
     const file = ref(
       'https://raw.githubusercontent.com/mozilla/pdf.js-sample-files/master/tracemonkey.pdf',
     )
@@ -54,19 +54,16 @@ type PDFHookOptions = {
   onPageLoadFail?: (err: Error) => void;
   onPageRenderSuccess?: (page: PDFPageProxy) => void;
   onPageRenderFail?: (err: Error) => void;
-  cMapUrl?: string;
-  cMapPacked?: boolean;
-  workerSrc?: string; // default '//cdnjs.cloudflare.com/ajax/libs/pdf.js/${_pdfjs.version}/pdf.worker.js'
-  withCredentials?: boolean;
-  password?: string;
-  httpHeaders?: Record<string, unknown>;
+  onPassword?: (callback: (password: string) => void, reason: 'NEED_PASSWORD' | 'INCORRECT_PASSWORD') => void;
+  workerSrc?: string; // default 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js'
+  config?: DocumentInitParameters;
 }
 ```
 
 ```ts
 export type PDFHookReturn = {
-  pdfDocument: Ref<PDFDocumentProxy>;
-  pdfPage: Ref<PDFPageProxy>;
+  pdfDocument: DeepReadonly<Ref<PDFDocumentProxy>>;
+  pdfPage: DeepReadonly<Ref<PDFPageProxy>>;
   viewport: DeepReadonly<ComputedRef<PageViewport>>;
   page: DeepReadonly<Ref<number>>;
   rotate: DeepReadonly<Ref<number>>;
@@ -79,5 +76,6 @@ export type PDFHookReturn = {
   fitWidth: () => void;
   nextPage: () => void;
   prevPage: () => void;
+  setPage: (page: number) => void;
 };
 ```

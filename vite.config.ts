@@ -1,14 +1,13 @@
-import { defineConfig } from "vite";
-import vuePlugin from "@vitejs/plugin-vue";
-import { resolve } from "path";
+import { defineConfig } from 'vite'
+import vuePlugin from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vuePlugin()],
   build: {
     lib: {
-      entry: resolve(__dirname, "lib/main.ts"),
-      name: "vue-pdfjs-hook",
+      entry: 'lib/main.ts',
+      name: 'vue-pdfjs-hook',
     },
     rollupOptions: {
       external: ['vue', 'pdfjs-dist'],
@@ -16,9 +15,9 @@ export default defineConfig({
         exports: 'named',
         globals: {
           vue: 'Vue',
-          'pdfjs-dist': 'pdfjsLib'
-        }
-      }
+          'pdfjs-dist': 'pdfjsLib',
+        },
+      },
     },
   },
-});
+})
