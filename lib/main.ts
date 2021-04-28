@@ -8,7 +8,7 @@ import {
   PDFOperatorList,
 } from 'pdfjs-dist/types/display/api'
 import { PageViewport } from 'pdfjs-dist/types/display/display_utils'
-import type { PDFHookOptions } from '../main'
+import type { PDFHookOptions, PDFHookReturn } from '../main'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 function isFunction(value: unknown): value is Function {
@@ -18,7 +18,7 @@ function isFunction(value: unknown): value is Function {
 type SVGGfx = {
   getSVG: (operatorList: PDFOperatorList, viewport: PageViewport) => Promise<HTMLElement>
 }
-export const usePDF = (options: PDFHookOptions) => {
+export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
   const {
     element,
     onDocumentLoadSuccess,
@@ -71,13 +71,13 @@ export const usePDF = (options: PDFHookOptions) => {
     () => pdfPage.value?.getViewport({ scale: 1.0 }) ?? { height: 0, width: 0 },
   )
 
-  const workerSrc = ref(options.workerSrc ?? `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${_pdfjs.version}/pdf.worker.js`)
+  const workerSrc = options.workerSrc ?? `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${_pdfjs.version}/pdf.worker.js`
 
-  _pdfjs.GlobalWorkerOptions.workerSrc = workerSrc.value
+  _pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
 
   watch(
     file,
-    (_file, _oldFile, onInvalidate) => {
+    (_file, _oldFile) => {
       if (!_file || _oldFile === _file) return
       const _config: DocumentInitParameters = {
         url: _file,

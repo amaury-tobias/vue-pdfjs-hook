@@ -7,9 +7,12 @@ import type {
 import type { PageViewport } from 'pdfjs-dist/types/display/display_utils'
 
 export type PDFHookReturn = {
-  pdfDocument: DeepReadonly<Ref<PDFDocumentProxy>>
-  pdfPage: DeepReadonly<Ref<PDFPageProxy>>
-  viewport: DeepReadonly<ComputedRef<PageViewport>>
+  pdfDocument: DeepReadonly<Ref<PDFDocumentProxy | undefined>>
+  pdfPage: DeepReadonly<Ref<PDFPageProxy | undefined>>
+  viewport: DeepReadonly<ComputedRef<PageViewport | {
+    height: number
+    width: number
+  }>>
   page: DeepReadonly<Ref<number>>
   rotate: DeepReadonly<Ref<number>>
   scale: DeepReadonly<Ref<number>>
