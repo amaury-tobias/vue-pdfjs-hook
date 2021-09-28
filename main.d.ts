@@ -16,6 +16,12 @@ export type PDFHookReturn = {
   page: DeepReadonly<Ref<number>>
   rotate: DeepReadonly<Ref<number>>
   scale: DeepReadonly<Ref<number>>
+  canvasAttributes: DeepReadonly<Ref<{
+    width: number
+    height: number
+    class: string
+    style: string
+  }>>
   rotateCW: () => void
   rotateCCW: () => void
   scaleIn: () => void
@@ -28,8 +34,9 @@ export type PDFHookReturn = {
 }
 
 export type PDFHookOptions = {
-  element: Ref<HTMLElement | undefined>
+  element: Ref<HTMLElement| HTMLCanvasElement | undefined>
   file: Ref<string>
+  renderType: 'svg' | 'canvas'
   onDocumentLoadSuccess?: (document: PDFDocumentProxy) => void
   onDocumentLoadFail?: (err: Error) => void
   onPageLoadSuccess?: (page: PDFPageProxy) => void

@@ -16,11 +16,14 @@ function isFunction(value: unknown): value is Function {
 }
 
 type SVGGfx = {
-  getSVG: (operatorList: PDFOperatorList, viewport: PageViewport) => Promise<HTMLElement>
+  getSVG: (
+    operatorList: PDFOperatorList,
+    viewport: PageViewport,
+  ) => Promise<HTMLElement>
 }
+
 export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
   const {
-    element,
     onDocumentLoadSuccess,
     onDocumentLoadFail,
     onPageLoadSuccess,
@@ -28,17 +31,15 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
     onPageRenderSuccess,
     onPageRenderFail,
     onPassword,
-
     file,
     config,
+    renderType,
+    element,
   } = options
 
-  const svgCache = new Map<string, HTMLElement>()
   const pdfPageCache = new Map<number, PDFPageProxy>()
-
   const pdfDocument = shallowRef<PDFDocumentProxy>()
   const pdfPage = shallowRef<PDFPageProxy>()
-  const svg = shallowRef<HTMLElement>()
 
   const page = ref(0)
   const scale = ref(1)
@@ -52,7 +53,8 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
 
   const viewport = computed(() => {
     const page = pdfPage.value ?? { rotate: 0 }
-    const rotation = _rotate.value === 0 ? page.rotate : page.rotate + _rotate.value
+    const rotation
+      = _rotate.value === 0 ? page.rotate : page.rotate + _rotate.value
     const dpRatio = window.devicePixelRatio
     const adjustedScale = scale.value * dpRatio
 
@@ -63,6 +65,7 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
       }) ?? {
         width: 0,
         height: 0,
+        rotation: 0,
       }
     )
   })
@@ -71,7 +74,9 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
     () => pdfPage.value?.getViewport({ scale: 1.0 }) ?? { height: 0, width: 0 },
   )
 
-  const workerSrc = options.workerSrc ?? `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${_pdfjs.version}/pdf.worker.js`
+  const workerSrc
+    = options.workerSrc
+    ?? `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${_pdfjs.version}/pdf.worker.js`
 
   _pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
 
@@ -79,19 +84,25 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
     file,
     (_file, _oldFile) => {
       if (!_file || _oldFile === _file) return
+
       const _config: DocumentInitParameters = {
         url: _file,
       }
       Object.assign(_config, config)
       const documentLoadingTask = _pdfjs.getDocument(_config)
 
-      documentLoadingTask.onPassword = (updatePassword: (password: string) => void, reason: number) => {
+      documentLoadingTask.onPassword = (
+        updatePassword: (password: string) => void,
+        reason: number,
+      ) => {
         switch (reason) {
           case _pdfjs.PasswordResponses.NEED_PASSWORD:
-            if (isFunction(onPassword)) onPassword(updatePassword, 'NEED_PASSWORD')
+            isFunction(onPassword)
+              && onPassword(updatePassword, 'NEED_PASSWORD')
             break
           case _pdfjs.PasswordResponses.INCORRECT_PASSWORD:
-            if (isFunction(onPassword)) onPassword(updatePassword, 'INCORRECT_PASSWORD')
+            isFunction(onPassword)
+              && onPassword(updatePassword, 'INCORRECT_PASSWORD')
             break
         }
       }
@@ -99,51 +110,71 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
       documentLoadingTask.promise
         .then((loadedPdfDocument) => {
           pdfDocument.value = loadedPdfDocument
-
-          if (isFunction(onDocumentLoadSuccess)) onDocumentLoadSuccess(loadedPdfDocument)
+          isFunction(onDocumentLoadSuccess)
+            && onDocumentLoadSuccess(loadedPdfDocument)
         })
         .catch((err) => {
-          if (isFunction(onDocumentLoadFail)) onDocumentLoadFail(err)
+          isFunction(onDocumentLoadFail) && onDocumentLoadFail(err)
         })
     },
     { immediate: true },
   )
 
-  watch(scale, async () => {
-    const { width, height } = viewport.value
-
-    svg.value?.setAttribute('width', width.toString())
-    svg.value?.setAttribute('height', height.toString())
+  const canvasAttributes = computed(() => {
+    const [pixelWidth, pixelHeight] = [viewport.value.width, viewport.value.height].map(dim => Math.ceil(dim / 1))
+    return {
+      width: viewport.value.width,
+      height: viewport.value.height,
+      class: 'pdf-page',
+      style: `width: ${pixelWidth}px; height: ${pixelHeight}px;`,
+    }
   })
 
-  watch([page, rotate], async ([_page]) => {
+  const renderCanvas = (element: HTMLElement, PDFPage: PDFPageProxy) => {
+    const canvasContext = (element as HTMLCanvasElement).getContext('2d')
+    if (canvasContext) {
+      PDFPage.render({
+        canvasContext,
+        viewport: viewport.value as PageViewport,
+      })
+    }
+  }
+
+  const renderSVG = async (element: HTMLElement, PDFPage: PDFPageProxy) => {
+    const operatorList = await PDFPage.getOperatorList()
+    const svgGfx: SVGGfx = new _pdfjs.SVGGraphics(
+      PDFPage.commonObjs,
+      PDFPage.objs,
+    )
+    const svgElement = await svgGfx.getSVG(
+      operatorList,
+      viewport.value as PageViewport,
+    )
+
+    element.firstElementChild && element.removeChild(element.firstElementChild)
+    element.appendChild(svgElement)
+  }
+
+  watch([page, rotate, scale], async ([_page]) => {
     if (_page === 0) {
-      const el = element.value
-      if (el && el.firstElementChild) el.removeChild(el.firstElementChild)
+      element.value?.firstElementChild
+        && element.value.removeChild(element.value.firstElementChild)
       return
     }
-    const drawPdfPage = async (_PDFPage: PDFPageProxy) => {
-      const rotation = _rotate.value === 0 ? _PDFPage.rotate : _PDFPage.rotate + _rotate.value
 
-      if (svgCache.has(`${_PDFPage.pageNumber}.${rotation}`)) {
-        svg.value = svgCache.get(`${_PDFPage.pageNumber}.${rotation}`)
-      } else {
-        try {
-          const operatorList = await _PDFPage.getOperatorList()
-          const svgGfx: SVGGfx = new _pdfjs.SVGGraphics(_PDFPage.commonObjs, _PDFPage.objs)
-          svg.value = await svgGfx.getSVG(operatorList, viewport.value as PageViewport)
-          svgCache.set(`${_PDFPage.pageNumber}.${rotation}`, svg.value)
-        } catch (err) {
-          if (isFunction(onPageRenderFail)) onPageRenderFail(err)
-          return
+    const drawPdfPage = async (_PDFPage: PDFPageProxy) => {
+      try {
+        if (element.value) {
+          if (renderType === 'canvas') renderCanvas(element.value, _PDFPage)
+          else await renderSVG(element.value, _PDFPage)
+        } else {
+          throw new Error('element value on render is undefined')
         }
+      } catch (err) {
+        return isFunction(onPageRenderFail) && onPageRenderFail(err as Error)
       }
 
-      const el = element.value
-      if (!el || !svg.value) return
-      if (el.firstElementChild) el.removeChild(el.firstElementChild)
-      if (!el.firstElementChild) el.appendChild(svg.value)
-      if (isFunction(onPageRenderSuccess)) onPageRenderSuccess(_PDFPage)
+      return isFunction(onPageRenderSuccess) && onPageRenderSuccess(_PDFPage)
     }
 
     if (!pdfDocument.value) return
@@ -154,9 +185,9 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
       try {
         pdfPage.value = await pdfDocument.value.getPage(_page)
         pdfPageCache.set(_page, pdfPage.value)
-        if (isFunction(onPageLoadSuccess)) onPageLoadSuccess(pdfPage.value)
+        isFunction(onPageLoadSuccess) && onPageLoadSuccess(pdfPage.value)
       } catch (err) {
-        if (isFunction(onPageLoadFail)) onPageLoadFail(err)
+        isFunction(onPageLoadFail) && onPageLoadFail(err as Error)
       }
     }
 
@@ -165,9 +196,8 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
 
   watch(pdfDocument, () => {
     page.value = 0
-    svgCache.clear()
     pdfPageCache.clear()
-    nextTick(() => page.value = 1)
+    nextTick(() => (page.value = 1))
   })
 
   const rotateCW = () => {
@@ -221,11 +251,12 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
   return {
     pdfDocument: readonly(pdfDocument),
     pdfPage: readonly(pdfPage),
-    viewport: readonly(defaultViewport),
+    viewport,
 
     page: readonly(page),
     rotate: readonly(rotate),
     scale: readonly(scale),
+    canvasAttributes,
 
     rotateCW,
     rotateCCW,

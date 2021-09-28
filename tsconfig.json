@@ -1,24 +1,14 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
     "strict": true,
     "jsx": "preserve",
     "sourceMap": true,
-    "lib": [
-      "esnext",
-      "dom"
-    ],
-    "types": [
-      "vite/client"
-    ],
+    "lib": ["esnext", "dom"],
+    "types": ["vite/client"]
   },
-  "include": [
-    "lib/**/*.ts",
-    "src/**/*.ts",
-    "lib/**/*.d.ts",
-    "lib/**/*.tsx",
-    "lib/**/*.vue"
-  ]
+  "include": ["src/**/*", "lib/**/*"]
 }
