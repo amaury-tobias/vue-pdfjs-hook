@@ -55,12 +55,10 @@ export const usePDF = (options: PDFHookOptions): PDFHookReturn => {
     const page = pdfPage.value ?? { rotate: 0 }
     const rotation
       = _rotate.value === 0 ? page.rotate : page.rotate + _rotate.value
-    const dpRatio = window.devicePixelRatio
-    const adjustedScale = scale.value * dpRatio
 
     return (
       pdfPage.value?.getViewport({
-        scale: adjustedScale,
+        scale: scale.value,
         rotation,
       }) ?? {
         width: 0,
